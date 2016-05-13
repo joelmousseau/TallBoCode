@@ -46,12 +46,14 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     Loop();
    virtual void     ViewWave();
+   virtual void     GetTriggerSlopes();
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual double    getAmplitude (std::vector<double> wave, int startTick, int endTick);
    virtual int      FindPulseEndTime(std::vector<double> ADCs, int MPulseStartTime, double Pedestal);
    virtual int      FindPulseStartTime(std::vector<double> ADCs, int MPulseStartTime, double Threshold);
    virtual double    getArea(std::vector<double> wave, int startTick, int endTick);
+   virtual double    getSlope(std::vector<double> wave, int tick);
    virtual std::string getFileName();
 };
 
@@ -79,47 +81,9 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       // of trees.
       TChain * chain = new TChain("waveformdata","");
       
-      /*chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-14_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-15_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-15_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-16_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-16_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-17_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-17_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-18_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-18_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-19_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-19_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-20_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-20_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-21_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-21_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-22_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-22_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-23_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-19-23_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-00_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-00_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-01_00_02.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-01_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-02_00_02.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-02_30_02.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-03_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-03_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-04_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-04_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-05_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-05_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-06_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-06_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-07_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-07_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-08_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-08_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-09_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-09_30_01.root/waveformdata");*/
+
       
-    /*chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-10_00_01.root/waveformdata");
+   /*   chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-10_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-10_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-11_00_02.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-20-11_30_01.root/waveformdata");
@@ -259,7 +223,6 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-06_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-07_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-07_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-08_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-08_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-09_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-23-09_30_01.root/waveformdata");
@@ -676,7 +639,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-31-23_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2015-12-31-23_30_01.root/waveformdata");*/
       
-     /* chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-01-00_00_01.root/waveformdata");
+   /*   chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-01-00_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-01-00_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-01-01_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-01-01_30_01.root/waveformdata");
@@ -837,61 +800,9 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-04-07_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-04-07_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-04-08_00_01.root/waveformdata");*/
-                  
-    /*chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-01_00_02.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-01_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-01_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-01_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-02_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-02_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-02_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-02_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-03_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-03_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-03_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-03_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-04_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-04_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-04_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-04_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-05_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-05_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-05_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-05_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-06_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-06_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-06_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-06_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-07_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-07_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-07_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-07_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-08_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-08_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-08_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-08_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-09_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-09_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-09_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-09_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-10_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-10_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-10_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-11_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-11_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-11_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-11_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_00_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-13_00_01.root/waveformdata");*/ 
+                        
            
-    /*  chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-13-12_30_01.root/waveformdata");
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-13-12_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-13-12_45_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-13-13_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-13-13_15_01.root/waveformdata");
@@ -965,6 +876,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-06_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-06_30_02.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-06_45_01.root/waveformdata");
+    
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-07_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-07_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-14-07_30_01.root/waveformdata");
@@ -1087,8 +999,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-12_45_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-13_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-13_15_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-13_30_01.root/waveformdata");*/
-    
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-13_30_01.root/waveformdata");    
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-13_45_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-14_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-14_15_01.root/waveformdata");
@@ -1128,7 +1039,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-23_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-23_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-23_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-23_45_01.root/waveformdata");
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-15-23_45_01.root/waveformdata");      
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-16-00_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-16-00_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-16-00_30_01.root/waveformdata");
@@ -1483,7 +1394,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-15_45_02.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-16_00_01.root/waveformdata");
       
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-18_00_01.root/waveformdata");
+    /*  chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-18_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-18_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-18_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-18_45_01.root/waveformdata");
@@ -1506,7 +1417,7 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-23_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-23_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-23_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-23_45_01.root/waveformdata");      
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-19-23_45_01.root/waveformdata");     
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-00_30_01.root/waveformdata");
@@ -1558,9 +1469,10 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-12_45_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-13_00_01.root/waveformdata");
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-20-13_00_01.root/waveformdata");*/
+
             
-      /*chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-00_00_01.root/waveformdata");
+    /*  chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-00_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-00_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-00_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-00_45_01.root/waveformdata");
@@ -1620,7 +1532,6 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-14_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-14_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-14_45_01.root/waveformdata");*/
-
       
     /*  chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-17_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-17_45_01.root/waveformdata");
@@ -1647,9 +1558,9 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-23_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-23_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-23_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-23_45_01.root/waveformdata");*/
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-21-23_45_01.root/waveformdata");
       
-      /*chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-00_00_01.root/waveformdata");
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-00_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-00_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-00_30_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-00_45_01.root/waveformdata");
@@ -1712,8 +1623,8 @@ MakeTrees::MakeTrees(TTree *tree) : fChain(0)
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-15_00_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-15_15_01.root/waveformdata");
       chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-15_30_01.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-15_45_02.root/waveformdata");
-      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-16_00_01.root/waveformdata"); */ 
+      chain->Add("/uboone/data/users/joelam/RadonTests/TallBo_Rn_2016-01-22-15_45_02.root/waveformdata");*/
+
       
       
       tree = chain;

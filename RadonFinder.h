@@ -15,6 +15,9 @@
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
 
+static const Int_t N_SAMPLES = 50000;
+static const Double_t TICK_TO_NS = 8.0;
+
 class RadonFinder {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -76,14 +79,12 @@ RadonFinder::RadonFinder(TTree *tree) : fChain(0)
       // The following code should be used if you want this class to access a chain
       // of trees.
       TChain * chain = new TChain("wavedata","");
-      chain->Add("FastFill2015.root/wavedata");
-      chain->Add("FastFill2016.root/wavedata");
-      //chain->Add("SlowFill2016.root/wavedata");
-      //chain->Add("SlowFill10mvPerDiv.root/wavedata");
-      //chain->Add("Test.root/wavedata");
-      //chain->Add("FastFill2015Trig.root/wavedata");
-      //chain->Add("SlowFill2016Trig.root/wavedata");
-      //chain->Add("LEDTrigger.root/wavedata");
+      chain->Add("FastFill2015NewPulse.root/wavedata");
+      chain->Add("FastFill2016NewPulse.root/wavedata");
+      //chain->Add("SlowFill50mvDiv.root/wavedata");
+      //chain->Add("SlowFill10mvDiv.root/wavedata");
+      //chain->Add("SlowFillAfterSplit.root/wavedata");
+      //chain->Add("SlowFillAfterSplitNePulse.root/wavedata");
       tree = chain;
 #endif // SINGLE_TREE
 

@@ -13,6 +13,7 @@
 #include <TLegend.h>
 #include <TColor.h>
 #include <TProfile.h>
+#include <TMatrixD.h>
 
 /*Random Fit code
 TF1 f1("f1","[0]*([1]*exp(-[1])/([2]*sqrt(2*TMath::Pi()))*exp(-pow(x-[3],2)/(2*pow([2],2)))+pow([1],2)*exp(-[1])/2./([2]*sqrt(4*TMath::Pi()))*exp(-pow(x-2*[3],2)/(4*pow([2],2))))\
@@ -29,13 +30,18 @@ void RadonFinder::MakeHists(std::string fillRate)
    const double tick_to_s = 8.0*1e-9;
    const int maxDepth = 20;
    const double minAmp = 0.01;
+   const double maxAmp = 0.1;
    const int maxWidth = 5;
    const double startDay = 0.0;
    const double minSPEArea = 0.0;
    const double maxSPEArea = 0.92;
+   const bool  rejectBigPulses = true;
+   const double gainSF = 0.35;
+   //const double gainSF = 1.0;
+   const int holdoff_time = 1250;
    
    
-   std::string histoName = fillRate + "FillHistos.root";
+   std::string histoName = fillRate + "Histos.root";
    
    TFile *histoFile = new TFile(histoName.c_str(), "RECREATE");
    histoFile->cd();
@@ -43,14 +49,18 @@ void RadonFinder::MakeHists(std::string fillRate)
    TH1F *h_widths   = new TH1F("width", "Pulse Widths", 100, 0 , 100);
    //TH1F *h_areas    = new TH1F("area", "Pulse Area", 2000, 0 , 20.0);
    TH1F *h_areas    = new TH1F("area", "Pulse Area", 1000, 0 , 80.0);
-   TH1F *h_amps     = new TH1F("amp", "Pulse Amplitude", 50, 0 ,0.5);
+   TH1F *h_amps     = new TH1F("amp", "Pulse Amplitude", 250, 0 ,0.5);
    TH1F *h_ampOArea = new TH1F("ampoverarea", "Pulse Area / Amplitude", 100, 0 , 0.2);
    TH1F *h_timeDiff = new TH1F("timediff", "Time Between Neighboring Pulses", 250*tick_to_ns, 0, 50000*tick_to_us);
    TH1F *h_triggerDiff = new TH1F("triggerdiff", "Time Between Trigger and Subsequent Pulses", 250*tick_to_ns, 0, 50000*tick_to_us);
+   TH1F *h_triggerStartTick = new TH1F("triggerstarttick", "", 3500, 2000, 5500);
+   TH1F *h_triggerEndTick = new TH1F("triggerendtick", "", 3500, 2000, 5500);
+   TH1F *h_triggerWidth   = new TH1F("triggerwidth", "", 1500, 0, 1500);
    
    TH2F *h_areaVWidth = new TH2F("areavwidth", "Pulse Area vs Pulse Width", 30, 0, 30, 3000, 0, 30);
    TH2F *h_ampVArea   = new TH2F("ampvarea", "Pulse Amplitude vs Pulse Area", 250, 0 , 20.0, 50, 0, 0.5);
    TH2F *h_wavesVTime = new TH2F("wavesvtime", "Number of Pulses vs Day", 30, 0 , 30.0, 50, 0, 50.0);
+   TH2F *h_rateVTime  = new TH2F("ratevtime", "1 PE Pulse Rate vs Day", 30, 0 , 30.0, 50, 0, 50.0);
    
    TH1F *h_areaPerWidth[maxDepth];
    TH1F *h_ampOverAreaPerWidth[maxDepth];
@@ -63,7 +73,9 @@ void RadonFinder::MakeHists(std::string fillRate)
    
    int currentWave = -1;
    double currentTime = 0.0;
-   double triggerTime = 0.0; 
+   double triggerTime = 0.0;
+   int triggerStartTick = 0;
+   int triggerEndTick = 0; 
    double currentAmp = 0.0;
    int pulsesPerForm = 0;
    double daysSince  = -1.0;
@@ -72,6 +84,7 @@ void RadonFinder::MakeHists(std::string fillRate)
    if (fChain == 0) return;
 
    Long64_t nentries = fChain->GetEntriesFast();
+   bool isBigPulse = false;
 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -86,13 +99,27 @@ void RadonFinder::MakeHists(std::string fillRate)
       
       
 
-      const bool onePEPulse = (pulseArea > minSPEArea && pulseArea <= maxSPEArea);
+      const bool onePEPulse = (gainSF*pulseArea > minSPEArea && gainSF*pulseArea <= maxSPEArea);
+      //const bool onePEPulse = true;
       
       //Igonre the trigger pulse cuz it's stoopid
-      if(PulseNo == 1)
+      if(PulseNo == 1){
+         triggerStartTick = StartTick;
+	 triggerEndTick = EndTick;
+	 h_triggerStartTick->Fill(StartTick);
+	 h_triggerEndTick->Fill(EndTick);
+	 h_triggerWidth->Fill(EndTick - StartTick);
+	 continue;
+
+      }
+      
+      //Only look at pulses significantly after the trigger pulse
+      if( (StartTick - triggerEndTick) < holdoff_time)
         continue;
       
-      if(onePEPulse)
+      
+      
+      if(onePEPulse )
         ++pulsesPerForm;
       
       
@@ -102,20 +129,30 @@ void RadonFinder::MakeHists(std::string fillRate)
 	if(day != currentDay){
 	  daysSince = daysSince + 1.0;
 	  currentDay = day;
+	  cout << daysSince << " " << day << endl;
+	  //if(daysSince == 6)
+	  //  cout << day << endl;
 	}  
 	 
         currentWave = WaveNo;
 	triggerTime = StartTick*tick_to_us;
 	currentTime = StartTick*tick_to_us;
 	currentAmp  = Amplitude;
-	if(currentWave != -1) 
+	if(currentWave != -1) {
+	  int activeTicks = N_SAMPLES - ( holdoff_time+(triggerEndTick - triggerStartTick)+triggerStartTick );
+	  double activeTime = TICK_TO_NS*activeTicks*1e-5; 
+	  double rate = (double)pulsesPerForm/activeTime; //rate in khz
+	  //std::cout << rate  << std::endl;
 	  h_wavesVTime->Fill(daysSince, pulsesPerForm);
+	  h_rateVTime->Fill(daysSince, rate);
+	  
+	}  
 	pulsesPerForm = 0;
 	//cout << day <<endl;
       }
       
       else{
-         if(fabs(Amplitude) >= minAmp && fabs(currentAmp) >= minAmp && pulseWidth < maxWidth){
+         if(fabs(gainSF*Amplitude) >= minAmp && fabs(currentAmp) >= minAmp && pulseWidth < maxWidth){
 	   h_timeDiff->Fill((StartTick*tick_to_us - currentTime));
 	   h_triggerDiff->Fill((StartTick*tick_to_us - triggerTime));
 	 }
@@ -123,23 +160,24 @@ void RadonFinder::MakeHists(std::string fillRate)
       }
       
       
-      
-      if(1){
-      //if(onePEPulse){
+      //cout << "All: " << onePEPulse << " " << isBigPulse << endl;
+      //if(1){
+      if(onePEPulse && !isBigPulse){
         	
-        h_widths->Fill(pulseWidth);	  
-        h_areaVWidth->Fill( pulseWidth, fabs(pulseArea) );
-        h_amps->Fill(fabs(Amplitude));
+        //cout << "Passed: " << onePEPulse << " " << isBigPulse << endl;
+	h_widths->Fill(pulseWidth);	  
+        h_areaVWidth->Fill( pulseWidth, fabs(gainSF*pulseArea) );
+        h_amps->Fill(fabs(gainSF*Amplitude));
 	
 	if(fabs(Amplitude) >= minAmp && pulseWidth < maxWidth){
-	  h_areaPerWidth[pulseWidth]->Fill(fabs(pulseArea) );
+	  h_areaPerWidth[pulseWidth]->Fill(fabs(gainSF*pulseArea) );
 	  h_ampOverAreaPerWidth[pulseWidth]->Fill( ampOverArea );
 	
 	}
 	    
-	if(fabs(Amplitude) >= minAmp && pulseWidth > 1){
-	   h_areas->Fill(fabs(pulseArea));
-	   h_ampVArea->Fill(fabs(pulseArea), fabs(Amplitude));
+	if(fabs(gainSF*Amplitude) >= minAmp && pulseWidth > 1){
+	   h_areas->Fill(fabs(gainSF*pulseArea));
+	   h_ampVArea->Fill(fabs(gainSF*pulseArea), fabs(gainSF*Amplitude));
 	   //cout << ampOverArea << endl;	
 	   h_ampOArea->Fill( ampOverArea );
 	}  
@@ -180,8 +218,8 @@ void RadonFinder::MakePlots(std::string fillRate){
   good_colors.push_back( kPink+2 );
   good_colors.push_back( kCyan+2 );
   
-  std::string histoName = fillRate + "FillHistos.root";
-  const string topDir = "/uboone/data/users/joelam/" + fillRate +"FillPlots/";
+  std::string histoName = fillRate + "Histos.root";
+  const string topDir = "/uboone/data/users/joelam/" + fillRate +"Plots/";
   
   //Get the Histogram File
   TFile *histoFile = new TFile(histoName.c_str(), "READ");
@@ -190,8 +228,11 @@ void RadonFinder::MakePlots(std::string fillRate){
   TH1F *h_amp       = (TH1F*)histoFile->Get("amp");
   TH1F *h_area      = (TH1F*)histoFile->Get("area");
   TH1F *h_width     = (TH1F*)histoFile->Get("width");
+  
   TH2F *h_ampVArea  = (TH2F*)histoFile->Get("ampvarea");
   TH2F *h_pVTime    = (TH2F*)histoFile->Get("wavesvtime");
+  TH2F *h_rVTime    = (TH2F*)histoFile->Get("ratevtime");
+  
   TH1F *h_ampOverAreaPerWidth[maxDepth];
   
   for(int i = 0; i < maxDepth; ++i){
@@ -318,8 +359,38 @@ void RadonFinder::MakePlots(std::string fillRate){
   h_area->SetLineWidth(3);
   h_area->Draw("hist");
   outFile = topDir + "Area.pdf";
-  can->Print(outFile.c_str(), "pdf");
   
+  can->Print(outFile.c_str(), "pdf");  
+  can->Clear();
+  can->Update();
+  
+  TH1D *h_areaUnitNorm = (TH1D*)h_amp->Clone("areaUnitNorm");
+  //double norm = (double) 1 / h_areaUnitNorm->Integral();
+  //h_areaUnitNorm->Scale(norm);
+  h_areaUnitNorm->Sumw2();
+  h_areaUnitNorm->SetLineColor(kBlack);
+  h_areaUnitNorm->SetTitle("Pulse Area ");
+  h_areaUnitNorm->GetXaxis()->SetRangeUser(0, 0.1);
+  h_areaUnitNorm->GetXaxis()->SetTitle("V*ns");
+  h_areaUnitNorm->SetLineWidth(3);
+  //h_areaUnitNorm->SetMaximum(1.5e5);
+  h_areaUnitNorm->Draw("hist");
+  outFile = topDir + "AreaUnitNorm.pdf";
+  TF1 f1("f1","[0]*([1]*exp(-[1])/([2]*sqrt(2*TMath::Pi()))*exp(-pow(x-[3],2)/(2*pow([2],2)))+pow([1],2)*exp(-[1])/(2*[2]*sqrt(4*TMath::Pi()))*exp(-pow(x-2*[3],2)/(4*pow([2],2))))",0.01,0.05);
+  f1.SetParameters(800000.,0.02,0.03,0.02);
+  //TF1 f1("f1", "pow([0], x*10)*exp(-[0]) / TMath::Gamma(x*10+1)", 0.0, 10.0);
+  //double parsOne[1] = {6.0};
+  //f1.SetParameters(parsOne);
+  h_areaUnitNorm->Fit(&f1, "QRN");
+  f1.SetLineColor(kRed);
+  f1.Draw("same");
+  chi2 = Form("#chi^{2} / ndf: %.2f / %d = %.3f",f1.GetChisquare(), f1.GetNDF(), (double)f1.GetChisquare()/f1.GetNDF() );
+  TLatex *chiLabel1 = new TLatex(0.4, 0.75, chi2.c_str());
+  chiLabel1->SetNDC();
+  chiLabel1->SetTextSize(0.03);
+  chiLabel1->SetTextColor(kRed);
+  chiLabel1->Draw("same");  
+  can->Print(outFile.c_str(), "pdf");  
   can->Clear();
   can->Update();
   
@@ -391,10 +462,19 @@ void RadonFinder::MakePlots(std::string fillRate){
   can->Update();
   
   h_pVTime->GetYaxis()->SetTitle("Number of 1 PE Pulses");
+  TProfile *prof_pVTime = h_pVTime->ProfileX("prof_tmp"); // gotta do this before scaling
+  h_pVTime->GetYaxis()->SetRangeUser(0, 25.0);
   h_pVTime->GetXaxis()->SetTitle("Days Since Start of Data Taking");
+  h_pVTime->SetMaximum(11e3);
+  //normalize to unit area
+  double scale = (double)(1 / h_pVTime->Integral() );
+  
+  
+  //h_pVTime->SetMinimum(5e3);
   //h_pVTime->GetXaxis()->SetRangeUser(0, 1.0);
+  h_pVTime->Scale(scale);
   h_pVTime->Draw("colrz");
-  gPad->SetLogz(0);
+  gPad->SetLogz(1);
   gPad->Update();
   palette0 = (TPaletteAxis*)h_pVTime->GetListOfFunctions()->FindObject("palette");
   
@@ -409,10 +489,10 @@ void RadonFinder::MakePlots(std::string fillRate){
   can->Clear();
   can->Update();  
   
-  TProfile *prof_pVTime = h_pVTime->ProfileX("prof_tmp");
   prof_pVTime->GetYaxis()->SetTitle("Mean Number of 1 PE Pulses");
+
   prof_pVTime->GetYaxis()->SetRangeUser(1.0, 20.0);
-  prof_pVTime->GetXaxis()->SetRangeUser(1.0, 15.0);
+  prof_pVTime->GetXaxis()->SetRangeUser(0.0, 12.0);
   prof_pVTime->GetXaxis()->SetTitle("Days Since Start of Data Taking");
   prof_pVTime->SetMarkerStyle(kFullDotLarge);
   prof_pVTime->SetMarkerSize(1.75);
@@ -422,7 +502,45 @@ void RadonFinder::MakePlots(std::string fillRate){
   outFile = topDir + "1PEProf.pdf";
   can->Print(outFile.c_str(), "pdf"); 
 
+  h_rVTime->GetYaxis()->SetTitle("Rate of 1 PE Pulses");
+  TProfile *prof_rVTime = h_rVTime->ProfileX("prof_tmp"); //gotta do this before scaling
+  h_rVTime->GetYaxis()->SetRangeUser(0, 10.0);
+  h_rVTime->GetXaxis()->SetTitle("Days Since Start of Data Taking");
+  //normalize to unit area
+  scale = (double)(1 / h_rVTime->Integral() );
   
+  //h_pVTime->SetMinimum(5e3);
+  //h_pVTime->GetXaxis()->SetRangeUser(0, 1.0);
+  h_rVTime->Scale(scale);
+  h_rVTime->Draw("colrz");
+  gPad->SetLogz(1);
+  gPad->Update();
+  palette0 = (TPaletteAxis*)h_rVTime->GetListOfFunctions()->FindObject("palette");
+  
+  if(palette0 != 0){
+    palette0->SetX1NDC(0.85);
+    palette0->SetX2NDC(0.9);
+  }
+
+  outFile = topDir + "1PERatevTime.pdf";
+  can->Print(outFile.c_str(), "pdf");   
+  
+  can->Clear();
+  can->Update();  
+  
+  
+  prof_rVTime->GetYaxis()->SetTitle("Mean Number of 1 PE Pulses");
+  
+  prof_rVTime->GetYaxis()->SetRangeUser(0.0, 2.0);
+  prof_rVTime->GetXaxis()->SetRangeUser(0.0, 12.0);
+  prof_rVTime->GetXaxis()->SetTitle("Days Since Start of Data Taking");
+  prof_rVTime->SetMarkerStyle(kFullDotLarge);
+  prof_rVTime->SetMarkerSize(1.75);
+  prof_rVTime->SetMarkerColor(kBlack);
+  prof_rVTime->SetLineColor(kBlack);
+  prof_rVTime->Draw();
+  outFile = topDir + "1PERateProf.pdf";
+  can->Print(outFile.c_str(), "pdf");
   
      
 
@@ -458,24 +576,28 @@ void RadonFinder::MakeComparisonPlots(){
   good_colors.push_back( kCyan+2 );
   
   //Get the Histogram Files
-  TFile *histoFileSlow = new TFile("SlowFillHistos.root", "READ");
-  TFile *histoFileFast = new TFile("FastFillHistos.root", "READ");   
+  TFile *histoFileSlow = new TFile("10mvAllPEHistos.root", "READ");
+  TFile *histoFileFast = new TFile("AfterSplitAllPEHistos.root", "READ");   
   
   TH1F *h_timeDiff_slow    = (TH1F*)histoFileSlow->Get("timediff");
   TH1F *h_ampOArea_slow    = (TH1F*)histoFileSlow->Get("ampoverarea");
   TH1F *h_amp_slow         = (TH1F*)histoFileSlow->Get("amp");
   TH1F *h_area_slow        = (TH1F*)histoFileSlow->Get("area");
   TH1F *h_width_slow       = (TH1F*)histoFileSlow->Get("width");
+  
   TH2F *h_ampVArea_slow    = (TH2F*)histoFileSlow->Get("ampvarea");
   TH2F *h_timeVPulse_slow  = (TH2F*)histoFileSlow->Get("wavesvtime");
+  TH2F *h_rateVPulse_slow  = (TH2F*)histoFileSlow->Get("ratevtime");
   
   TH1F *h_timeDiff_fast    = (TH1F*)histoFileFast->Get("timediff");
   TH1F *h_ampOArea_fast    = (TH1F*)histoFileFast->Get("ampoverarea");
   TH1F *h_amp_fast         = (TH1F*)histoFileFast->Get("amp");
   TH1F *h_area_fast        = (TH1F*)histoFileFast->Get("area");
   TH1F *h_width_fast       = (TH1F*)histoFileFast->Get("width");
+  
   TH2F *h_ampVArea_fast    = (TH2F*)histoFileFast->Get("ampvarea");
   TH2F *h_timeVPulse_fast  = (TH2F*)histoFileFast->Get("wavesvtime");
+  TH2F *h_rateVPulse_fast  = (TH2F*)histoFileFast->Get("ratevtime");
   
   //area normalize the two runs
   int startBin = h_amp_slow->GetXaxis()->FindBin(0.01);
@@ -513,9 +635,10 @@ void RadonFinder::MakeComparisonPlots(){
   h_area_slow->SetLineWidth(3);
   h_area_fast->SetLineWidth(3);
   
-  h_area_slow->GetXaxis()->SetRangeUser(0, 2.0);
-  h_area_fast->GetXaxis()->SetRangeUser(0, 2.0);  
+  h_area_slow->GetXaxis()->SetRangeUser(0, 5.0);
+  h_area_fast->GetXaxis()->SetRangeUser(0, 5.0);  
   h_area_slow->Scale(scale);
+  h_area_slow->SetMaximum(50e3);
   h_area_slow->Draw("hist");
   h_area_fast->Draw("hist same");
   legend->Draw("same");
@@ -601,8 +724,35 @@ void RadonFinder::MakeComparisonPlots(){
   prof_slow->SetMarkerSize(1.75);
   prof_fast->Draw("");
   prof_slow->Draw("same");
-  outFile = topDir +"SPERateCompare.pdf";
+  outFile = topDir +"SPENumberCompare.pdf";
   can->Print(outFile.c_str(), "pdf");
+  
+  delete prof_slow;
+  delete prof_fast;
+  
+  prof_slow = h_rateVPulse_slow->ProfileX("profSlow");
+  prof_fast = h_rateVPulse_fast->ProfileX("profFast");
+  prof_slow->SetMarkerColor(kBlack);
+  prof_fast->SetMarkerColor(kRed+2);
+  prof_slow->SetLineColor(kBlack);
+  prof_fast->SetLineColor(kRed+2);
+  prof_slow->SetMarkerStyle(kFullDotLarge);
+  prof_fast->SetMarkerStyle(kFullDotLarge);
+  prof_fast->SetMarkerSize(1.08);
+  prof_slow->SetMarkerSize(1.08);
+  
+  prof_slow->GetXaxis()->SetTitle("Days Since Start of Data Taking");
+  prof_fast->GetXaxis()->SetTitle("Days Since Start of Data Taking");
+  prof_fast->GetYaxis()->SetTitle("Mean 1 PE Rate (kHz)");
+  prof_fast->GetYaxis()->SetRangeUser(0.0, 4.0);
+  prof_fast->GetXaxis()->SetRangeUser(0.0, 12.0);
+  
+  prof_fast->SetMarkerSize(1.75);
+  prof_slow->SetMarkerSize(1.75);
+  prof_fast->Draw("");
+  prof_slow->Draw("same");
+  outFile = topDir +"SPERateCompare.pdf";
+  can->Print(outFile.c_str(), "pdf"); 
   
 
 
@@ -635,3 +785,17 @@ void RadonFinder::SetRedHeatPalette(){
   gStyle->SetNumberContours(n_color_contours);
   gStyle->SetPalette(n_color_contours, colors);
 }
+
+/*void RadonFinder::GetSPERateHist(TProfile *prof, TH1F *returnHist, int holdOffTime){
+    
+    double binVal = 0.0;
+    double binErr = 0.0;
+    const double denom = (N_SAMPLES-holdOffTime)*TICK_TO_NS;  
+    for(int bin=1; bin < prof->GetNbinsX()+2; ++bin){
+       binVal = prof->GetBinContent(bin) / denom;
+       returnHist->SetBinContent(bin, binVal);
+    
+    }
+
+
+}*/

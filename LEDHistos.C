@@ -28,14 +28,16 @@ void LEDHistos::MakeHists()
    const int maxTicks = 2500;
    
    
-   TFile *histoFile = new TFile("HistogramsLED.root", "RECREATE");
+   
+   TFile *histoFile = new TFile("HistogramsPedSupLED.root", "RECREATE");
    histoFile->cd();
    
    TH1F *h_widths   = new TH1F("width", "Pulse Widths", 100, 0 , 100);
    TH1F *h_pedestal   = new TH1F("pedestal", "Pedestal", 100, -0.0225 , 0.0225);
+   
    //TH1F *h_areas    = new TH1F("area", "Pulse Area", 2000, 0 , 20.0);
    TH1F *h_areas    = new TH1F("area", "Pulse Area", 1000, 0 , 40.0);
-   TH1F *h_amps     = new TH1F("amp", "Pulse Amplitude", 450, 0 ,0.225);
+   TH1F *h_amps     = new TH1F("amp", "Pulse Amplitude", 225, 0 ,0.18);
    TH1F *h_ampOArea = new TH1F("ampoverarea", "Pulse Area / Amplitude", 200, 0 , 0.2);
    TH1F *h_timeDiff = new TH1F("timediff", "Time Between Neighboring Pulses", 250*tick_to_ns, 0, 50000*tick_to_us);
    TH1F *h_triggerDiff = new TH1F("triggerdiff", "Time Between Trigger and Subsequent Pulses", 250*tick_to_ns, 0, 50000*tick_to_us);
@@ -161,6 +163,7 @@ void LEDHistos::MakePlots(){
   const double loge = 0.434;
   const double lnTwo = 0.693;
   const int maxDepth = 20;
+  const double maxTicks = 2500.0;
   
   std::vector<int> good_colors;
   good_colors.clear();
@@ -224,18 +227,36 @@ void LEDHistos::MakePlots(){
   can->Clear();
   can->Update();
   
+  h_ped->SetLineColor(kBlack);
+  h_ped->SetTitle("Pedestal");
+  h_ped->GetXaxis()->SetTitle("V");
+  h_ped->SetLineWidth(3);
+  h_ped->Draw("hist");
+  gPad->SetLogy(1);
+  can->Print("Ped.pdf", "pdf");
+  
+  can->Clear();
+  can->Update();  
+  
   h_ped->SetLineColor(kRed);
   h_ped->SetTitle("Pulse Amplitude");
   h_ped->GetXaxis()->SetTitle("V");
   //h_ped->GetXaxis()->SetRangeUser(0, 0.12);
   h_ped->SetLineWidth(3);
-  h_ped->Draw("hist");
-  h_amp->Draw("hist same");
+  double scale = (double) (1 / maxTicks);
+  h_ped->Scale(scale);
+  h_amp->SetMaximum(1e4);
+  h_amp->SetMinimum(1.0);
+  h_amp->Draw("hist");
+  h_ped->Draw("hist same");
   gPad->SetLogy(1);
+  //gPad->SetLogx(1);
   can->Print("AmpAndPed.pdf", "pdf");
   
   can->Clear();
   can->Update();
+  
+  gPad->SetLogy(0);
   
   h_width->SetLineColor(kBlack);
   h_width->SetTitle("Pulse Width");
@@ -480,7 +501,7 @@ void LEDHistos::MakeComparisonPlots(){
 
 int LEDHistos::GetOnePE(double percentage){
     //Get the Histogram File
-    TFile *histoFile = new TFile("HistogramsLED.root", "READ");
+    TFile *histoFile = new TFile("SlowFillHistos.root", "READ");
     TH1F *h_area      = (TH1F*)histoFile->Get("area");
     int firstBin = 2; //igonore the zero biin
     int lastBin  = h_area->GetNbinsX();
