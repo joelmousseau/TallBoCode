@@ -20,7 +20,7 @@ void MakeTrees::GetTriggerSlopes(){
    TFile *file = new TFile("SlopeHistogramsSmall.root", "RECREATE");
    
    const double pedestal = -0.005;
-   //const double pedestal = -0.008; //use for 10 mv / Div
+   //const double pedestal = -0.001; //use for 10 mv / Div
    const double triggerThreshhold = -0.01;
    double amplitude = 0.0;
    int startTick   = 0; 
@@ -97,10 +97,13 @@ void MakeTrees::GetTriggerSlopes(){
 void MakeTrees::Loop()
 {
 
-   const double pedestal = -0.005;
+   //const double pedestal = -0.005;
+   const double pedestal = -0.001; //use for 10 mv / Div
+   //const double hiPedestal = 0.002;
+   const double hiPedestal = 0.001; //use for 10 mv / Div
    const double triggerThreshhold = -0.01;
    
-   TFile *ntupleFile = new TFile("SlowFill50mvDivNewPulse.root", "RECREATE");
+   TFile *ntupleFile = new TFile("TrueRandom.root", "RECREATE");
    
    TTree *tree0 = new TTree("wavedata","Wavedata");
    
@@ -141,7 +144,7 @@ void MakeTrees::Loop()
       //copy waveforms into vectors (make my life easier)
       ++waveNumber;
       std::vector<double> waveForm;
-      waveForm.assign(ch1wfms, ch1wfms+N_SAMPLES);
+      waveForm.assign(ch2wfms, ch2wfms+N_SAMPLES);
       //getAmplitude(waveForm);
       //std::cout << "Waveform amplitude: " << getAmplitude(waveForm) << "V" << std::endl; 
       pulseNumber = 0;
@@ -167,7 +170,7 @@ void MakeTrees::Loop()
       }	
       
       startTick = FindPulseStartTime(waveForm, 0, triggerThreshhold);
-      endTick   = FindPulseEndTime(waveForm, startTick, pedestal);
+      endTick   = FindPulseEndTime(waveForm, startTick, pedestal, hiPedestal);
       area    = getArea(waveForm, startTick, endTick);
       amplitude = getAmplitude(waveForm, startTick, endTick);
       if(endTick == -1){
@@ -188,7 +191,7 @@ void MakeTrees::Loop()
 
 	  
 	  startTick = FindPulseStartTime(waveForm, endTick+1, triggerThreshhold);
-          endTick   = FindPulseEndTime(waveForm, startTick, pedestal);
+          endTick   = FindPulseEndTime(waveForm, startTick, pedestal, hiPedestal);
           area      = getArea(waveForm, startTick, endTick);
           amplitude = getAmplitude(waveForm, startTick, endTick);
 	  
@@ -224,7 +227,10 @@ void MakeTrees::ViewWave(){
    legend->AddEntry(h_startTick, "Pulse Start Time", "l");
    legend->AddEntry(h_endTick, "Pulse End Time", "l"); 
    
-   const double pedestal = -0.005;
+   //const double pedestal = -0.005;
+   const double pedestal = -0.001; //use for 10 mv / Div
+   //const double hiPedestal = 0.002;
+   const double hiPedestal = 0.001; //use for 10 mv / Div
    const double triggerThreshhold = -0.01;
    
    int startTick   = 0; 
@@ -253,10 +259,10 @@ void MakeTrees::ViewWave(){
       std::string cmd;
       ++waveNo;
       std::vector<double> waveData;
-      waveData.assign(ch1wfms, ch1wfms+N_SAMPLES);
+      waveData.assign(ch2wfms, ch2wfms+N_SAMPLES);
       
       for(int tick = 1; tick < N_SAMPLES; ++tick){
-         waveForm->Fill(tick, ch1wfms[tick]);
+         waveForm->Fill(tick, ch2wfms[tick]);
 	 waveSlope->Fill(tick, getSlope(waveData, tick) );
 	 //cout << getSlope(waveData, tick) << endl;
       
@@ -265,7 +271,7 @@ void MakeTrees::ViewWave(){
       
       
       startTick = FindPulseStartTime(waveData, 0, triggerThreshhold);
-      endTick   = FindPulseEndTime(waveData, startTick, pedestal);
+      endTick   = FindPulseEndTime(waveData, startTick, pedestal, hiPedestal);
       area    = getArea(waveData, startTick, endTick);
       amplitude = getAmplitude(waveData, startTick, endTick);
       
@@ -274,7 +280,7 @@ void MakeTrees::ViewWave(){
       
       while(endTick < N_SAMPLES && endTick != -1 && startTick != -1){
 	  startTick = FindPulseStartTime(waveData, endTick+1, triggerThreshhold);
-          endTick   = FindPulseEndTime(waveData, startTick, pedestal);
+          endTick   = FindPulseEndTime(waveData, startTick, pedestal, hiPedestal);
           area      = getArea(waveData, startTick, endTick);
           amplitude = getAmplitude(waveData, startTick, endTick);
 	  
@@ -286,7 +292,7 @@ void MakeTrees::ViewWave(){
       }//end of while
       can->Divide(1,2);
       can->cd(1);
-      waveForm->GetXaxis()->SetRangeUser(1900, 2900);
+      //waveForm->GetXaxis()->SetRangeUser(1900, 2900);
       waveForm->SetMaximum(0.01);
       //waveForm->SetMinimum(-0.01);
       waveSlope->SetMarkerColor(kGreen+2);
@@ -397,7 +403,7 @@ int MakeTrees::FindPulseStartTime(std::vector<double> ADCs, int MPulseStartTime,
 } //End of FindEndTime
 
 //Try to find when the pulse ended. Define this as when the pulse drops to pedestal levels
-int MakeTrees::FindPulseEndTime(std::vector<double> ADCs, int MPulseStartTime, double Pedestal){
+int MakeTrees::FindPulseEndTime(std::vector<double> ADCs, int MPulseStartTime, double Pedestal, double hiPedestal){
 
 if(MPulseStartTime == -1)
   return -1;
@@ -414,7 +420,7 @@ int currentwidth = 0;
 
 for(int i = MPulseStartTime; i < N_SAMPLES; ++i){
    ++currentwidth;
-   if( ADCs[i] >= Pedestal && ADCs[i] < 0.002){
+   if( ADCs[i] >= Pedestal && ADCs[i] < hiPedestal){
         if(quietTicks == 0) returnTick = i;
 	++quietTicks;	
       }

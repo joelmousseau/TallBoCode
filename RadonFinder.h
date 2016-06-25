@@ -49,11 +49,36 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     MakeHists(std::string fillRate = "Unkown");
    virtual void     MakePlots(std::string fillRate = "Unkown");
-   virtual void     MakeComparisonPlots();
+   virtual void     MakeComparisonPlots(bool areaNorm = false);
    virtual Bool_t  Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual double    CalcLogError(double val, double err);
    virtual void     SetRedHeatPalette();
+   virtual double    MinToHeight(double minutes);
+   virtual double    MinToVolume(double minutes);
+   
+   class runTime{
+     
+     public:
+      runTime(long date){
+        year = floor((date % 1000000000000) / 100000000 );
+        month = floor((date % 100000000) / 1000000 );
+        day = floor((date % 1000000) / 10000);
+        hour = floor((date % 10000) / 100);
+        minute = floor((date % 100) );      
+      };
+     
+     private:
+      double year;
+      double month;
+      double day;
+      double hour;
+      double minute;
+
+
+   };
+   
+
 };
 
 #endif
@@ -79,12 +104,12 @@ RadonFinder::RadonFinder(TTree *tree) : fChain(0)
       // The following code should be used if you want this class to access a chain
       // of trees.
       TChain * chain = new TChain("wavedata","");
-      chain->Add("FastFill2015NewPulse.root/wavedata");
-      chain->Add("FastFill2016NewPulse.root/wavedata");
-      //chain->Add("SlowFill50mvDiv.root/wavedata");
-      //chain->Add("SlowFill10mvDiv.root/wavedata");
-      //chain->Add("SlowFillAfterSplit.root/wavedata");
-      //chain->Add("SlowFillAfterSplitNePulse.root/wavedata");
+      //chain->Add("FastFill2015NewPulse.root/wavedata");
+      //chain->Add("FastFill2016NewPulse.root/wavedata");
+      chain->Add("SlowFill50mvDivNewPulse.root/wavedata");
+      chain->Add("SlowFill10mvDivNewPulse.root/wavedata");
+      chain->Add("AfterSpitNewPulse.root/wavedata");
+      //chain->Add("TrueRandom.root/wavedata");
       tree = chain;
 #endif // SINGLE_TREE
 
